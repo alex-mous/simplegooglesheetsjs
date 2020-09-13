@@ -1,0 +1,22 @@
+{
+  "name": "simplegooglesheets",
+  "version": "1.0.0",
+  "description": "SimpleGoogleSheets is a wrapper that simplifies the Google Sheets API",
+  "main": "index.js",
+  "author": "Alex Mous",
+  "license": "MIT",
+  "keywords": [
+    "google",
+    "google api",
+    "google sheets",
+    "google spreadsheets",
+    "google docs",
+    "sheets",
+    "api",
+    "googleapis",
+    "spreadsheets"
+  ],
+  "dependencies": {
+    "googleapis": "^59.0.0"
+  }
+}
