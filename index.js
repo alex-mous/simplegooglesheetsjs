@@ -1,27 +1,29 @@
 /**
- * SimpleGoogleSheets module
- * @module simplegooglesheets
+ * @module simplegooglesheetsjs
+ * @requires googleapis
  */
-
 const {google} = require("googleapis");
+const Headers = require("./Headers.js");
 
 /**
- * 
- * @class
- * @classdesc Simplified wrapper for the Google Sheets API
- */
+* SimpleGoogleSheets default constructor
+* @constructor
+* @memberof module:simplegooglesheetsjsjs
+* @class SimpleGoogleSheets
+* @classdesc  SimpleGoogleSheets is a simplified wrapper for the Google Sheets API
+*/
 class SimpleGoogleSheets {
-    /**
-     * Default constructor
-     * 
-     * @constructor
-     */
+    #headers;
+    #devMeta;
+
     constructor() {
         this.spreadsheetId = null;
         this.sheets = null; //No sheets object yet - initialized during authentication
         this.sheetId = null;
         this.sheetName = null; //No current sheet
-        this.metadata = {}; //No meta data yet
+        this._metadata = [];
+        this.#headers = {}; //Headers of sheet
+        this.#devMeta = {}; //Store named rows and cells
     }
 
     /* ========== Authorize Functions ========== */
@@ -29,43 +31,56 @@ class SimpleGoogleSheets {
     /**
      * Authorize with a service account from an email and a private key
      * 
-     * @function authorizeServiceAccount
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~authorizeServiceAccount
      * @param {string} client_email The service account email
      * @param {string} private_key The service account private key
      */
     authorizeServiceAccount = (client_email, private_key) => {
         let auth = new google.auth.GoogleAuth({client_email: client_email, private_key: private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets']}); //Google Authentication for API
-        this.sheets = google.sheets({version: 'v4', auth}).spreadsheets; //Sheets API
+        this.#setSheetAuth(auth);
     }
 
     /**
      * Authorize with a service account from a file
      * 
-     * @function authorizeServiceAccount
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~authorizeServiceAccountFile
      * @param {string} keyFile Name of the file to get the client_email and private_key from
      */
-    authorizeServiceAccount = (keyFile) => {
+    authorizeServiceAccountFile = (keyFile) => {
         let auth = new google.auth.GoogleAuth({keyFile: keyFile, scopes: ['https://www.googleapis.com/auth/spreadsheets']}); //Google Authentication for API
-        this.sheets = google.sheets({version: 'v4', auth}).spreadsheets; //Sheets API
+        this.#setSheetAuth(auth);
     }
 
     /**
      * Authorize with an API Key
      * 
-     * @function authorizeAPIKey
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~authorizeAPIKey
      * @param {string} key API Key
      */
     authorizeAPIKey = (key) => {
-        this.sheets = google.sheets({version: 'v4', key}).spreadsheets; //Sheets API
+        this.#setSheetAuth(key);
     }
 
+    
 
 
     /* ========== Private Helper Functions ========== */
 
     /**
+     * Set the sheet from the auth
+     * 
+     * @function setSheets
+     * @private
+     * @param {Object} auth Google Auth object
+     */
+    #setSheetAuth = (auth) => {
+        this.sheets = google.sheets({version: 'v4', auth}).spreadsheets; //Sheets API
+    }
+
+    /**
      * Update the meta data object with current meta data
      * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~updateMetaData
      * @private
      */
     #updateMetaData = () => {
@@ -76,17 +91,19 @@ class SimpleGoogleSheets {
                 if (err) {
                     reject(err);
                 } else {
-                    this.metadata = res.data;
+                    this._metadata = res.data;
                     resolve();
                 }
             });
         })
     }
 
-        /**
+    /**
      * Get the sheet name from the meta data and id
      * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getSheetName
      * @param {number} id Integer id of the sheet
+     * @private
      * @returns {string} Name of sheet (or undefined if not found)
      */
     #getSheetName = (id) => {
@@ -96,7 +113,9 @@ class SimpleGoogleSheets {
     /**
      * Get the sheet id from the meta data and name
      * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getSheetId
      * @param {string} name Name of the sheet
+     * @private
      * @returns {number} Id of sheet (or undefined if not found)
      */
     #getSheetId = (name) => {
@@ -107,7 +126,7 @@ class SimpleGoogleSheets {
     /**
      * Run the updated request on the current spreadsheet
      * 
-     * @function updateRequest
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~updateRequest
      * @private
      * @param {Object} req Request object
      */
@@ -115,7 +134,6 @@ class SimpleGoogleSheets {
         return new Promise((resolve, reject) => {
             let reqs = [];
             reqs.push(req);
-            const batchReq = {reqs};
             this.sheets.batchUpdate({
                 spreadsheetId: this.spreadsheetId,
                 resource: JSON.stringify({
@@ -131,17 +149,159 @@ class SimpleGoogleSheets {
         });
     }
 
+    /**
+     * Get the current spreadsheet headers
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getHeaders
+     * @returns {Promise} Promise of the current headers
+     */
+    getHeaders = () => {
+        return new Promise((resolve, reject) => {
+            this.#readRange("1:1").then((res) => {
+                let headers = new Headers();
+                res[0].forEach((val, i) => {
+                    if (val && val.length > 0) {
+                        if (!headers.addHeader(val, i)) {
+                            headers.addHeader(val+i, i); //Add index if the header exists
+                        }
+                    }
+                });
+                resolve(headers);
+            }).catch((err) => reject(err));
+        });
+    }
 
+    /**
+     * Set the spreadsheet headers
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~writeHeaders
+     * @param {Headers} headers Headers to set
+     * @returns {Promise} Promise of update status
+     */
+    writeHeaders(headers) {
+        return new Promise((resolve, reject) => {
+            if (headers) {
+                this.setRowArray(1, headers.getHeadersByColumn()).then(() => {
+                    resolve();
+                    this.#headers = headers;
+                }).catch((err) => reject(err));
+            } else {
+                reject("No headers supplied to set");
+            }
+        });
+    }
+
+    /**
+     * Set a single spreadsheet header
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~setHeader
+     * @param {string} name Name of header
+     * @param {number} column Column index
+     */
+    setHeader(name, column) {
+        this.#headers.addHeader(name, column);
+    }
+
+    /**
+     * Set the row with the data in the array
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~setRowArray
+     * @param {number} rowIndex Index of row
+     * @param {Array<string>} dataArray Data to set in cells (index=column number)
+     * @returns {Promise} Status of function
+     */
+    setRowArray = (rowIndex, dataArray) => {
+        return new Promise((resolve, reject) => {
+            if (rowIndex < 1) {
+                reject("Invalid row index. Must be >= 1");
+            } else {
+                let range = this.getRangeName(rowIndex, undefined, rowIndex, undefined);
+                this.#writeRange(range, "RAW", [dataArray]).then(() => {
+                    resolve();
+                }).catch((err) => reject(err));
+            }
+        });
+    }
+
+    /**
+     * Get the name of the column (such as A, ABZ, or ZAD) from the index
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getColumnName
+     * @throws Error if invalid index provided
+     * @param {number} columnIndex Get the column name from the index
+     * @returns Column name (such as ABZ)
+     */
+    getColumnName = (columnIndex) => {
+        let rem = columnIndex; //Remainder 
+        let res = "";
+        if (rem<0 || rem>18277) { //Check for valid index
+            throw new Error("Column index must be between 0 and 18277, inclusive");
+        }
+        if (rem>701) { //Third value
+            let c3 = Math.min(26, Math.floor(rem/676));
+            res += String.fromCharCode('A'.charCodeAt(0)+c3-1);
+            rem -= c3*676;
+        }
+        if (rem>25) { //Second value
+            let c2 = Math.min(26, Math.floor(rem/26));
+            res += String.fromCharCode('A'.charCodeAt(0)+c2-1);
+            rem -= c2*26;
+        } else if (columnIndex>701) { //Edge case for large r but no second value
+            res += "A";
+        }
+        res += String.fromCharCode('A'.charCodeAt(0)+rem); //First value
+        return res;
+    }
+
+    /**
+     * Get the name of the range (in sheets format) from indexes
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRangeName
+     * @throws Error if invalid values provided
+     * @param {number} rowStart Starting row (and/or columnStart)
+     * @param {number} columnStart Starting column
+     * @param {number} rowEnd Ending row (and/or columnEnd)
+     * @param {number} columnEnd Ending column
+     * @returns {string} Range
+     */
+    getRangeName = (rowStart, columnStart, rowEnd, columnEnd) => {
+        if ((!rowStart || rowStart >= 1) && (!columnStart || columnStart >= 0) && (!rowEnd || rowEnd >= 1) && (!columnEnd || columnEnd >= 0)) { //Ensure that either the values are set
+            let res = "";
+            res += (columnStart >= 0) ? this.getColumnName(columnStart) : "";
+            res += (rowStart >= 1) ? rowStart : "";
+            res += !(rowEnd >= 1 || columnEnd >= 0) ? "" : (
+                ":" +
+                ((columnEnd >= 0) ? this.getColumnName(columnEnd) : "") +
+                ((rowEnd >= 1) ? rowEnd : "")
+            );
+            return res;
+        } else {
+            throw new Error("Please ensure that the rows and columns are greater than or equal to 1 and 0, respectively");
+        }
+    }
+
+     /**
+     * Set the row with the data in the format {"HEADER_1":"data1", "HEADER_N":"datan"}
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~setRow
+     * @param {number} rowIndex Index of row
+     * @param {HeaderData} data Data to set in cells (in HEADER_NAME:VALUE pairs)
+     * @returns {Promise} Status of function
+     */
+    setRow = (rowIndex, dataArray) => {
+
+    }
 
     /* ========== Create Functions ========== */
 
     /**
      * Create a new spreadsheet and set it as current
      * 
-     * @function createAndSetSpreadsheet
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~createAndSetSpreadsheet
      * @param {string} name 
+     * @returns {Promise} Undefined on success
      */
-    createAndSetSpreadsheet = (name) => {
+    createSpreadsheet = (name) => {
         return new Promise((resolve, reject) => {
             this.sheets.create({
                 resource: JSON.stringify({
@@ -166,14 +326,16 @@ class SimpleGoogleSheets {
     /**
      * Create and set as current sheet
      * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~createSheet
      * @param {string} name String name of sheet
+     * @returns {Promise} Undefined on success
      */
     createSheet = (name) => {
+        //TODO: add create function
         this.sheetId = this.metadata.sheets.length;
-        this.sheetName = nameOrId;
+        this.sheetName = name;
         this.#updateMetaData();
     }
-
 
 
 
@@ -182,9 +344,12 @@ class SimpleGoogleSheets {
     /**
      * Delete the sheet referenced by the name or the ID
      * 
-     * @param {*} nameOrId Integer ID or string name of sheet
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~deleteSheet
+     * @param {string|number} nameOrId Integer ID or string name of sheet
+     * @returns {Promise} Undefined on success
      */
     deleteSheet = (nameOrId) => {
+        //TODO: add delete function
         if (typeof nameOrId == 'number') { //ID
             let id = nameOrId;
         } else { //Name
@@ -198,9 +363,9 @@ class SimpleGoogleSheets {
     /**
      * Delete the row in the spreadsheet
      * 
-     * @function deleteRow
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~deleteRow
      * @param {number} rowIndex Index of row to delete
-     * @return {Promise} Promise object representing the status of the function
+     * @returns {Promise} Undefined on success
      */
     deleteRow = (rowIndex) => {
         return new Promise((resolve, reject) => {
@@ -223,11 +388,11 @@ class SimpleGoogleSheets {
     /**
      * Delete the row in the spreadsheet
      * 
-     * @function deleteCol
-     * @param {number} colIndex Index of column to delete
-     * @return {Promise} Promise object representing the status of the function
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~deleteCol
+     * @param {string} colIndex Index of column to delete
+     * @returns {Promise} Undefined on success
      */
-    deleteCol = (colIndex) => {
+    deleteColumn = (colIndex) => {
         return new Promise((resolve, reject) => {
             let request = {
                 deleteDimension: {
@@ -252,11 +417,12 @@ class SimpleGoogleSheets {
     /**
      * Read the range in the spreadsheet
      * 
-     * @function readRange
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~readRange
+     * @private
      * @param {string} range Range (ex. "A1:J4") to read from
-     * @return {Promise} Promise object representing the status of the function
+     * @return {Promise} Array of rows (array of cells)
      */
-    readRange = (range) => {
+    #readRange = (range) => {
         return new Promise((resolve, reject) => {
             this.sheets.values.get({
                 spreadsheetId: this.spreadsheetId,
@@ -270,18 +436,19 @@ class SimpleGoogleSheets {
         });
     }
 
-    /* ========== Write Functions ========== */
+    /* ========== Update Functions ========== */
 
     /**
      * Write the range in the spreadsheet
      * 
-     * @function writeRange
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~writeRange
+     * @private
      * @param {string} range Range (ex. "A1:J4") of data to update
      * @param {string} inputType How to parse the input data ("RAW" for storage as string, "USER_ENTERED" for parsing into date, numbers, formulas, currencies, etc.)
      * @param {Array<Array<string>>} data Data to write into the sheet (must be same dimensions as range)
-     * @return {Promise} Promise object representing the status of the function
+     * @returns {Promise} Undefined on success
      */
-    writeRange = (range, inputType, data) => {
+    #writeRange = (range, inputType, data) => {
         return new Promise((resolve, reject) => {
             this.sheets.values.update({
                 spreadsheetId: spreadsheetId,
@@ -297,70 +464,10 @@ class SimpleGoogleSheets {
         });
     }
 
-
-
-    /* ========== Setters ========== */
-
-    /**
-     * Set the current sheet, referenced by the name or the id
-     * 
-     * @function setSheet
-     * @param {string|number} nameOrId Integer id or string name of sheet
-     */
-    setSheet = (nameOrId) => {
-        return new Promise((resolve, reject) => {
-            if (typeof nameOrId == 'number') { //ID
-                if (this.#getSheetName(nameOrId) == undefined) {
-                   reject("no sheet exists for the id ", nameOrId);
-                }
-                this.sheetId = nameOrId;
-                this.sheetName = this.#getSheetName(nameOrId);
-                resolve();
-            } else { //Name
-                if (this.#getSheetId(nameOrId) == undefined) {
-                    reject("no sheet exists for the name ", nameOrId);
-                }
-                this.sheetId = this.#getSheetId(nameOrId); //Get the sheet that matched the name
-                this.sheetName = nameOrId;
-                resolve();
-            }
-        });
-    }
-
-    /**
-     * Set the current spreadsheet
-     * 
-     * @function setSpreadsheet
-     * @param {string} spreadsheetId ID of spreadsheet to use
-     * @returns {Promise} Promise of successful setting of id
-     */
-    setSpreadsheet = (spreadsheetId) => {
-        return new Promise((resolve, reject) => {
-            this.spreadsheetId = spreadsheetId;
-            this.#updateMetaData()
-                .then(() => resolve())
-                .catch((err) => reject(err));
-        });
-    }
-
-
-
-    /* ========== Getters ========== */
-
-    /**
-     * Get the current spreadsheet meta data
-     * 
-     * @function getSpreadsheetMetaData
-     * @returns {Object} Metadata
-     */
-    get getSpreadsheetMetaData() {
-        return this.metadata;
-    }
-
     /**
      * Find and replace the data in the spreadsheet
      * 
-     * @function findAndReplace
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~findAndReplace
      * @param {string} find The string to search for
      * @param {string} replacement Replacement string for find and replace
      * @param {boolean} allSheets Search all sheets or just the current one
@@ -389,6 +496,67 @@ class SimpleGoogleSheets {
                 reject(err);
             });
         });
+    }
+
+
+
+    /* ========== Setters ========== */
+
+    /**
+     * Set the current sheet, referenced by the name or the id. Also updates the headers
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~setSheet
+     * @param {string|number} nameOrId Integer id or string name of sheet
+     * @returns {Promise} Undefined on success
+     */
+    setSheet = (nameOrId) => {
+        return new Promise((resolve, reject) => {
+            if (typeof nameOrId == 'number') { //ID
+                if (this.#getSheetName(nameOrId) == undefined) {
+                   reject("no sheet exists for the id ", nameOrId);
+                }
+                this.sheetId = nameOrId;
+                this.sheetName = this.#getSheetName(nameOrId);
+                resolve();
+            } else { //Name
+                if (this.#getSheetId(nameOrId) == undefined) {
+                    reject("no sheet exists for the name ", nameOrId);
+                }
+                this.sheetId = this.#getSheetId(nameOrId); //Get the sheet that matched the name
+                this.sheetName = nameOrId;
+                resolve();
+            }
+        });
+    }
+
+    /**
+     * Set the current spreadsheet
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~setSpreadsheet
+     * @param {string} spreadsheetId ID of spreadsheet to use
+     * @returns {Promise} Undefined on success
+     */
+    setSpreadsheet = (spreadsheetId) => {
+        return new Promise((resolve, reject) => {
+            this.spreadsheetId = spreadsheetId;
+            this.#updateMetaData()
+                .then(() => resolve())
+                .catch((err) => reject(err));
+        });
+    }
+
+
+
+    /* ========== Getters ========== */
+
+    /**
+     * Get the current spreadsheet meta data
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~metadata
+     * @returns {Object} Metadata of current spreadsheet
+     */
+    get metadata() {
+        return this._metadata;
     }
 }
 

@@ -1,14 +1,14 @@
-# SimpleGoogleSheets
+# SimpleGoogleSheetsJS
 Create, read, and write Google Sheets through a simplified interface for the Google Sheets API
 
 ## Installation
-`npm install simplegooglesheets`
+`npm install simplegooglesheetsjs`
 
 ## Example
 ```
-const simplegooglesheets = require("simplegooglesheets");
+const simplegooglesheets = require("simplegooglesheetsjs");
 
-let spreadsheet = new 
+
 ```
 
 ## Usage

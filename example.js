@@ -8,7 +8,7 @@ spreadsheet.authorizeAPIKey("MY_API_KEY");
 //Or, authorize with a service account
 spreadsheet.authorizeServiceAccount("CLIENT_EMAIL", "PRIVATE_KEY");
 //Or, authorize with a JSON key file (containing fields client_email and private_key)
-spreadsheet.authorizeServiceAccount("/path/to/key/file.json");
+spreadsheet.authorizeServiceAccountFile("/path/to/key/file.json");
 
 
 //Use an existing spreadsheet
