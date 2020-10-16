@@ -8,7 +8,7 @@ const Headers = require("./Headers.js");
 /**
 * SimpleGoogleSheets default constructor
 * @constructor
-* @memberof module:simplegooglesheetsjsjs
+* @memberof module:simplegooglesheetsjs
 * @class SimpleGoogleSheets
 * @classdesc  SimpleGoogleSheets is a simplified wrapper for the Google Sheets API
 */
@@ -255,12 +255,47 @@ class SimpleGoogleSheets {
      * @returns {Promise} Status of function
      */
     setRow = (rowIndex, data) => {
-        let dataArray = [];
+        let dataArray = new Array(Object.keys(data).length);
         for (let key in data) {
-            console.log(key);
-            dataArray.push(data[key]);
+            dataArray[this.#headers.getHeaders()[key]] = data[key];
         }
         return this.setRowArray(rowIndex, dataArray);
+    }
+
+    /**
+     * Get the row and return the data in the array
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRowArray
+     * @param {number} rowIndex Index of row
+     * @returns {Promise<Array>} Array of data
+     */
+    getRowArray = (rowIndex) => {
+        return new Promise((resolve, reject) => {
+            this.#readRange(this.getRangeName(rowIndex, undefined, rowIndex, undefined))
+                .then((res) => resolve(res[0]))
+                .catch((e) => reject(e));
+        });
+    }
+
+    /**
+     * Get the row and return the data in the format {"HEADER_1":"data1", "HEADER_N":"datan"}
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRow
+     * @param {number} rowIndex Index of row
+     * @returns {Promise<Object>} Data
+     */
+    getRow = (rowIndex) => {
+        return new Promise((resolve, reject) => {
+            this.getRowArray(rowIndex).then((res) => {
+                let data = {};
+                res.forEach((val, i) => {
+                    if (val && val.length > 0) {
+                        data[this.#headers.getHeadersByColumn()[i]] = val;
+                    }
+                });
+                resolve(data);
+            }).catch((e) => reject(e));
+        });
     }
 
     /**
