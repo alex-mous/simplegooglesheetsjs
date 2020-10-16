@@ -39,7 +39,7 @@ class SimpleGoogleSheets {
      * @param {string} private_key The service account private key
      */
     authorizeServiceAccount = (client_email, private_key) => {
-        let auth = new google.auth.GoogleAuth({client_email: client_email, private_key: private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets']}); //Google Authentication for API
+        const auth = new google.auth.JWT({email: client_email, key: private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets']})
         this.#setSheetAuth(auth);
     }
 
