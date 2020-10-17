@@ -123,7 +123,7 @@ class SimpleGoogleSheets {
      */
     #getSheetId = (name) => {
         let sheet = this.#metadata.sheets.filter((s) => { return s.properties.title == name })[0];
-        return (sheet ? sheet.properties.index : undefined); //Return the sheet index (id) if it exists or undefined if it doesn't
+        return (sheet ? sheet.properties.sheetId : undefined); //Return the sheet index (id) if it exists or undefined if it doesn't
     }
 
     /**
