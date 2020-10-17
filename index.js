@@ -287,13 +287,42 @@ class SimpleGoogleSheets {
     getRow = (rowIndex) => {
         return new Promise((resolve, reject) => {
             this.getRowArray(rowIndex).then((res) => {
-                let data = {};
-                res.forEach((val, i) => {
-                    if (val && val.length > 0) {
-                        data[this.#headers.getHeadersByColumn()[i]] = val;
-                    }
-                });
-                resolve(data);
+                resolve(this.#parseRow(res));
+            }).catch((e) => reject(e));
+        });
+    }
+
+    /**
+     * Parse a row array into header/value pairs
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~parseRow
+     * @private
+     * @param {Array} rowData Row data array
+     * @returns {Object} Row data
+     */
+    #parseRow = (rowData) => {
+        let data = {};
+        rowData.forEach((val, i) => {
+            if (val && val.length > 0) {
+                data[this.#headers.getHeadersByColumn()[i]] = val;
+            }
+        });
+        return data;
+    }
+
+    /**
+     * Get an array of rows and return the data in the format [{"HEADER_1":"data1", "HEADER_N":"datan"}]
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRows
+     * @param {number} rowIndexStart Index of row start
+     * @param {number} rowIndexEnd Index of row start
+     * @returns {Promise<Array<Object>} Data
+     */
+    getRows = (rowIndexStart, rowIndexEnd) => {
+        return new Promise((resolve, reject) => {
+            this.#readRange(this.getRangeName(rowIndexStart, undefined, rowIndexEnd, undefined)).then((raw) => {
+                let rows = raw.map((r) => this.#parseRow(r));
+                resolve(rows);
             }).catch((e) => reject(e));
         });
     }

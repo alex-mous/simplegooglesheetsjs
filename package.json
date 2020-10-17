@@ -1,6 +1,6 @@
 {
   "name": "simplegooglesheetsjs",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "SimpleGoogleSheetsJS is a wrapper that simplifies the Google Sheets API",
   "main": "index.js",
   "author": "Alex Mous",
