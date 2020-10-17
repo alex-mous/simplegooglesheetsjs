@@ -263,6 +263,42 @@ class SimpleGoogleSheets {
     }
 
     /**
+     * Add the row with the data in the format {"HEADER_1":"data1", "HEADER_N":"datan"}
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~addRow
+     * @param {number} rowIndex Index of row
+     * @param {HeaderData} data Data to set in cells (in HEADER_NAME:VALUE pairs)
+     * @returns {Promise} Status of function
+     */
+    addRow = (data) => {
+        return new Promise((resolve, reject) => {
+            this.getLastRowIndex().then((i) => {
+                this.setRow(i+1, data).then(() => {
+                    resolve();
+                }).catch((e) => reject(e));
+            }).catch((e) => reject(e));
+        });
+    }
+
+    /**
+     * Add the row with the data in the array. Warning: will overwrite any headers (on row 0)
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~addRowArray
+     * @param {number} rowIndex Index of row
+     * @param {Array<string>} dataArray Data to set in cells (index=column number)
+     * @returns {Promise} Status of function
+     */
+    addRowArray = (dataArray) => {
+        return new Promise((resolve, reject) => {
+            this.getLastRowIndex().then((i) => {
+                this.setRowArray(i+1, dataArray).then(() => {
+                    resolve();
+                }).catch((e) => reject(e));
+            }).catch((e) => reject(e));
+        });
+    }
+
+    /**
      * Get the row and return the data in the array
      * 
      * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRowArray
@@ -293,6 +329,20 @@ class SimpleGoogleSheets {
     }
 
     /**
+     * Get the index of the last row
+     * 
+     * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getLastRowIndex
+     * @returns {Promise<number>} Index of the last row with data
+     */
+    getLastRowIndex = () => {
+        return new Promise((resolve, reject) => {
+            this.#readRange("A1:ZZZ").then((r) => {
+                resolve(r.length);
+            }).catch((e) => reject(e));
+        });
+    }
+
+    /**
      * Parse a row array into header/value pairs
      * 
      * @function module:simplegooglesheetsjs.SimpleGoogleSheets~parseRow
@@ -316,13 +366,17 @@ class SimpleGoogleSheets {
      * @function module:simplegooglesheetsjs.SimpleGoogleSheets~getRows
      * @param {number} rowIndexStart Index of row start
      * @param {number} rowIndexEnd Index of row start
-     * @returns {Promise<Array<Object>} Data
+     * @returns {Promise<Array<Object>>} Data
      */
     getRows = (rowIndexStart, rowIndexEnd) => {
         return new Promise((resolve, reject) => {
             this.#readRange(this.getRangeName(rowIndexStart, undefined, rowIndexEnd, undefined)).then((raw) => {
-                let rows = raw.map((r) => this.#parseRow(r));
-                resolve(rows);
+                if (raw) {
+                    let rows = raw.map((r) => this.#parseRow(r));
+                    resolve(rows);
+                } else {
+                    resolve([]);
+                }
             }).catch((e) => reject(e));
         });
     }
@@ -429,7 +483,7 @@ class SimpleGoogleSheets {
             let request = {
                 deleteDimension: {
                     range: {
-                        sheetId: this.currSheet,
+                        sheetId: this.#sheetId,
                         startIndex: rowIndex,
                         endIndex: rowIndex+1,
                         dimension: "ROWS"

@@ -33,6 +33,26 @@ spreadsheet.setSpreadsheet(spreadsheetId).then(() => {
 
 //Or create a new one
 spreadsheet.createSpreadsheet("My new spreadsheet");
+
+//Get rows
+spreadsheet.getRowArray(2).then((res) => console.log(res))
+spreadsheet.getRows(2,10).then((rows) => console.log(rows));
+spreadsheet.getLastRow().then((i) => { //Get the last row index, then get the last row
+    spreadsheet.getRow(i).then((data) => {
+        console.log(data);
+    });
+});
+
+//Add a row to the end
+spreadsheet.addRow({"HEADER1":"DATA1"});
+spreadsheet.addRowArray(["DATA1","DATA2","DATA3"]);
+
+//Set a row based on index
+spreadsheet.setRow(2, {"HEADER1":"DATA1"});
+spreadsheet.setRowArray(2, ["DATA1","DATA2","DATA3"]);
+
+//Delete a row
+spreadsheet.deleteRow(2);
 ```
 
 ## Documentation
@@ -50,8 +70,12 @@ spreadsheet.createSpreadsheet("My new spreadsheet");
         * [~refreshHeaders()](#module_simplegooglesheetsjs.SimpleGoogleSheets..refreshHeaders) ⇒ <code>Promise</code>
         * [~setRowArray(rowIndex, dataArray)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setRowArray) ⇒ <code>Promise</code>
         * [~setRow(rowIndex, data)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setRow) ⇒ <code>Promise</code>
+        * [~addRow(rowIndex, data)](#module_simplegooglesheetsjs.SimpleGoogleSheets..addRow) ⇒ <code>Promise</code>
+        * [~addRowArray(rowIndex, dataArray)](#module_simplegooglesheetsjs.SimpleGoogleSheets..addRowArray) ⇒ <code>Promise</code>
         * [~getRowArray(rowIndex)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRowArray) ⇒ <code>Promise.&lt;Array&gt;</code>
         * [~getRow(rowIndex)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRow) ⇒ <code>Promise.&lt;Object&gt;</code>
+        * [~getLastRowIndex()](#module_simplegooglesheetsjs.SimpleGoogleSheets..getLastRowIndex) ⇒ <code>Promise.&lt;number&gt;</code>
+        * [~getRows(rowIndexStart, rowIndexEnd)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRows) ⇒ <code>Promise.&lt;Array.&lt;Object&gt;&gt;</code>
         * [~setHeaders(headers)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setHeaders) ⇒ <code>Promise</code>
         * [~createAndSetSpreadsheet(name)](#module_simplegooglesheetsjs.SimpleGoogleSheets..createAndSetSpreadsheet) ⇒ <code>Promise</code>
         * [~createSheet(name)](#module_simplegooglesheetsjs.SimpleGoogleSheets..createSheet) ⇒ <code>Promise</code>
@@ -80,8 +104,12 @@ SimpleGoogleSheets is a simplified wrapper for the Google Sheets API
     * [~refreshHeaders()](#module_simplegooglesheetsjs.SimpleGoogleSheets..refreshHeaders) ⇒ <code>Promise</code>
     * [~setRowArray(rowIndex, dataArray)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setRowArray) ⇒ <code>Promise</code>
     * [~setRow(rowIndex, data)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setRow) ⇒ <code>Promise</code>
+    * [~addRow(rowIndex, data)](#module_simplegooglesheetsjs.SimpleGoogleSheets..addRow) ⇒ <code>Promise</code>
+    * [~addRowArray(rowIndex, dataArray)](#module_simplegooglesheetsjs.SimpleGoogleSheets..addRowArray) ⇒ <code>Promise</code>
     * [~getRowArray(rowIndex)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRowArray) ⇒ <code>Promise.&lt;Array&gt;</code>
     * [~getRow(rowIndex)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRow) ⇒ <code>Promise.&lt;Object&gt;</code>
+    * [~getLastRowIndex()](#module_simplegooglesheetsjs.SimpleGoogleSheets..getLastRowIndex) ⇒ <code>Promise.&lt;number&gt;</code>
+    * [~getRows(rowIndexStart, rowIndexEnd)](#module_simplegooglesheetsjs.SimpleGoogleSheets..getRows) ⇒ <code>Promise.&lt;Array.&lt;Object&gt;&gt;</code>
     * [~setHeaders(headers)](#module_simplegooglesheetsjs.SimpleGoogleSheets..setHeaders) ⇒ <code>Promise</code>
     * [~createAndSetSpreadsheet(name)](#module_simplegooglesheetsjs.SimpleGoogleSheets..createAndSetSpreadsheet) ⇒ <code>Promise</code>
     * [~createSheet(name)](#module_simplegooglesheetsjs.SimpleGoogleSheets..createSheet) ⇒ <code>Promise</code>
@@ -167,6 +195,32 @@ Set the row with the data in the format {"HEADER_1":"data1", "HEADER_N":"datan"}
 | rowIndex | <code>number</code> | Index of row |
 | data | <code>HeaderData</code> | Data to set in cells (in HEADER_NAME:VALUE pairs) |
 
+<a name="module_simplegooglesheetsjs.SimpleGoogleSheets..addRow"></a>
+
+#### SimpleGoogleSheets~addRow(rowIndex, data) ⇒ <code>Promise</code>
+Add the row with the data in the format {"HEADER_1":"data1", "HEADER_N":"datan"}
+
+**Kind**: inner method of [<code>SimpleGoogleSheets</code>](#module_simplegooglesheetsjs.SimpleGoogleSheets)  
+**Returns**: <code>Promise</code> - Status of function  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| rowIndex | <code>number</code> | Index of row |
+| data | <code>HeaderData</code> | Data to set in cells (in HEADER_NAME:VALUE pairs) |
+
+<a name="module_simplegooglesheetsjs.SimpleGoogleSheets..addRowArray"></a>
+
+#### SimpleGoogleSheets~addRowArray(rowIndex, dataArray) ⇒ <code>Promise</code>
+Add the row with the data in the array. Warning: will overwrite any headers (on row 0)
+
+**Kind**: inner method of [<code>SimpleGoogleSheets</code>](#module_simplegooglesheetsjs.SimpleGoogleSheets)  
+**Returns**: <code>Promise</code> - Status of function  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| rowIndex | <code>number</code> | Index of row |
+| dataArray | <code>Array.&lt;string&gt;</code> | Data to set in cells (index=column number) |
+
 <a name="module_simplegooglesheetsjs.SimpleGoogleSheets..getRowArray"></a>
 
 #### SimpleGoogleSheets~getRowArray(rowIndex) ⇒ <code>Promise.&lt;Array&gt;</code>
@@ -190,6 +244,26 @@ Get the row and return the data in the format {"HEADER_1":"data1", "HEADER_N":"d
 | Param | Type | Description |
 | --- | --- | --- |
 | rowIndex | <code>number</code> | Index of row |
+
+<a name="module_simplegooglesheetsjs.SimpleGoogleSheets..getLastRowIndex"></a>
+
+#### SimpleGoogleSheets~getLastRowIndex() ⇒ <code>Promise.&lt;number&gt;</code>
+Get the index of the last row
+
+**Kind**: inner method of [<code>SimpleGoogleSheets</code>](#module_simplegooglesheetsjs.SimpleGoogleSheets)  
+**Returns**: <code>Promise.&lt;number&gt;</code> - Index of the last row with data  
+<a name="module_simplegooglesheetsjs.SimpleGoogleSheets..getRows"></a>
+
+#### SimpleGoogleSheets~getRows(rowIndexStart, rowIndexEnd) ⇒ <code>Promise.&lt;Array.&lt;Object&gt;&gt;</code>
+Get an array of rows and return the data in the format [{"HEADER_1":"data1", "HEADER_N":"datan"}]
+
+**Kind**: inner method of [<code>SimpleGoogleSheets</code>](#module_simplegooglesheetsjs.SimpleGoogleSheets)  
+**Returns**: <code>Promise.&lt;Array.&lt;Object&gt;&gt;</code> - Data  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| rowIndexStart | <code>number</code> | Index of row start |
+| rowIndexEnd | <code>number</code> | Index of row start |
 
 <a name="module_simplegooglesheetsjs.SimpleGoogleSheets..setHeaders"></a>
 
